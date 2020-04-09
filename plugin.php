@@ -137,19 +137,19 @@ class QT_Importer {
 
 	private function exit_on_wrong_import_nonce() {
 		if ( ! wp_verify_nonce( $_POST['qt_nonce'], 'qt_import_ajx' ) ) {
-			$response['messages'][] = __( 'Invalid nonce', 'qt-import' );
-			$response['keepgoing']  = 0;
-			echo json_encode( $response );
+			$this->response['messages'][] = __( 'Invalid nonce', 'qt-import' );
+			$this->response['keepgoing']  = 0;
+			echo json_encode( $this->response );
 			exit;
 		}
 	}
 
 	function fix_links_ajx() {
 		if ( ! wp_verify_nonce( $_POST['qt_nonce'], 'qt_fix_links_ajx' ) ) {
-			$response['messages'][] = __( 'Invalid nonce', 'qt-import' );
-			$response['keepgoing']  = 0;
+			$this->response['messages'][] = __( 'Invalid nonce', 'qt-import' );
+			$this->response['keepgoing']  = 0;
 
-			echo json_encode( $response );
+			echo json_encode( $this->response );
 			exit;
 		}
 
@@ -164,11 +164,11 @@ class QT_Importer {
 
 		if ( $posts ) {
 			$qt_lfix_batch          = isset( $_POST['qt_lfix_batch'] ) ? $_POST['qt_lfix_batch'] : 1;
-			$response['messages'][] = sprintf( __( 'Fixing links: batch #%d.', 'qt-import' ), $qt_lfix_batch );
+			$this->response['messages'][] = sprintf( __( 'Fixing links: batch #%d.', 'qt-import' ), $qt_lfix_batch );
 			foreach ( $posts as $post_id ) {
 				$this->fix_links( $post_id );
 			}
-			$response['messages'][] = sprintf( __( 'Finished links fixing batch #%d. Processed %d posts.', 'qt-import' ), $qt_lfix_batch, self::BATCH_SIZE );
+			$this->response['messages'][] = sprintf( __( 'Finished links fixing batch #%d. Processed %d posts.', 'qt-import' ), $qt_lfix_batch, self::BATCH_SIZE );
 
 			// Are there more?
 			$posts = $wpdb->get_col( "
@@ -177,30 +177,30 @@ class QT_Importer {
                 LIMIT 1
             " );
 			if ( $posts ) {
-				$response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
-				$response['keepgoing']  = 1;
+				$this->response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
+				$this->response['keepgoing']  = 1;
 			} else {
-				$response['keepgoing']  = 0;
-				$response['messages'][] = __( 'Finished fixing links.', 'qt-import' );
+				$this->response['keepgoing']  = 0;
+				$this->response['messages'][] = __( 'Finished fixing links.', 'qt-import' );
 				$this->_set_progress( 'links', 1 );
 
 				// set language info for orphan posts
 				$this->import_orphans();
 
-				$response['redirects'] = $this->dump_redirects();
+				$this->response['redirects'] = $this->dump_redirects();
 				$this->_set_progress( 'redirects', 1 );
 				$this->_set_progress( 'ALL_FINISHED', 1 );
 
 
 			}
 		} else {
-			$response['messages'][] = __( 'No posts need links to be fixed.', 'qt-import' );
-			$response['keepgoing']  = 0;
+			$this->response['messages'][] = __( 'No posts need links to be fixed.', 'qt-import' );
+			$this->response['keepgoing']  = 0;
 		}
 
-		$response['messages'][] = '****************************************<br />';
+		$this->response['messages'][] = '****************************************<br />';
 
-		echo json_encode( $response );
+		echo json_encode( $this->response );
 		exit;
 
 	}
@@ -208,10 +208,10 @@ class QT_Importer {
 	function _import_terms() {
 
 		if ( ! wp_verify_nonce( $_POST['qt_nonce'], 'qt_terms_ajx' ) ) {
-			$response['messages'][] = __( 'Invalid nonce', 'qt-import' );
-			$response['keepgoing']  = 0;
+			$this->response['messages'][] = __( 'Invalid nonce', 'qt-import' );
+			$this->response['keepgoing']  = 0;
 
-			echo json_encode( $response );
+			echo json_encode( $this->response );
 			exit;
 		}
 
@@ -221,7 +221,7 @@ class QT_Importer {
 
 			$qtimport_status = get_option( '_qt_import_status' );
 			if ( empty( $qtimport_status['settings'] ) ) {
-				$response['messages'][] = __( 'Copying settings to WPML.', 'qt-import' );
+				$this->response['messages'][] = __( 'Copying settings to WPML.', 'qt-import' );
 				$this->map_wpml_settings();
 				$this->_set_progress( 'settings', 1 );
 			}
@@ -249,10 +249,10 @@ class QT_Importer {
 
 		}
 
-		$response['messages'][] = __( 'Importing terms.', 'qt-import' );
+		$this->response['messages'][] = __( 'Importing terms.', 'qt-import' );
 
 		$qt_terms_batch         = isset( $_POST['qt_terms_batch'] ) ? $_POST['qt_terms_batch'] : 1;
-		$response['messages'][] = sprintf( __( 'Fixing terms: batch #%d.', 'qt-import' ), $qt_terms_batch );
+		$this->response['messages'][] = sprintf( __( 'Fixing terms: batch #%d.', 'qt-import' ), $qt_terms_batch );
 
 		$term_translations = get_option( 'temp_qtranslate_terms' );
 
@@ -261,10 +261,10 @@ class QT_Importer {
 			if ( $term_translations ) {
 				update_option( 'temp_qtranslate_terms', $term_translations );
 			} else {
-				$response['messages'][] = __( 'No terms need to be fixed.', 'qt-import' );
-				$response['keepgoing']  = 0;
+				$this->response['messages'][] = __( 'No terms need to be fixed.', 'qt-import' );
+				$this->response['keepgoing']  = 0;
 
-				echo json_encode( $response );
+				echo json_encode( $this->response );
 				exit;
 			}
 		}
@@ -334,10 +334,10 @@ class QT_Importer {
 				update_option( 'temp_qtranslate_terms', 1 );
 			}
 
-			$response['messages'][] = sprintf( __( 'Finished import batch #%d. Imported %d terms.', 'qt-import' ), $qt_terms_batch, self::BATCH_SIZE );
+			$this->response['messages'][] = sprintf( __( 'Finished import batch #%d. Imported %d terms.', 'qt-import' ), $qt_terms_batch, self::BATCH_SIZE );
 
-			$response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
-			$response['keepgoing']  = 1;
+			$this->response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
+			$this->response['keepgoing']  = 1;
 		} else {
 			$taxonomies = get_option( 'temp_hierarchy_terms' );
 
@@ -391,12 +391,12 @@ class QT_Importer {
 
 			update_option( 'temp_hierarchy_terms', $taxonomies );
 
-			$response['messages'][] = sprintf( __( 'Finished adjust terms hierarchy batch #%d.', 'qt-import' ), $qt_terms_batch, self::BATCH_SIZE );
+			$this->response['messages'][] = sprintf( __( 'Finished adjust terms hierarchy batch #%d.', 'qt-import' ), $qt_terms_batch, self::BATCH_SIZE );
 
 			if ( $taxonomies ) {
 
-				$response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
-				$response['keepgoing']  = 1;
+				$this->response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
+				$this->response['keepgoing']  = 1;
 
 			} else {
 				delete_option( 'temp_qtranslate_terms' );
@@ -417,16 +417,16 @@ class QT_Importer {
 					}
 				}
 
-				$response['keepgoing']  = 0;
-				$response['messages'][] = __( 'Finished fixing terms.', 'qt-import' );
+				$this->response['keepgoing']  = 0;
+				$this->response['messages'][] = __( 'Finished fixing terms.', 'qt-import' );
 
 				$this->_set_progress( 'terms', 1 );
 			}
 		}
 
-		$response['messages'][] = '****************************************<br />';
+		$this->response['messages'][] = '****************************************<br />';
 
-		echo json_encode( $response );
+		echo json_encode( $this->response );
 		exit;
 
 
@@ -704,12 +704,12 @@ class QT_Importer {
 		$qt_clean_batch = isset( $_POST['qt_clean_batch'] ) ? $_POST['qt_clean_batch'] : 1;
 
 		if ( $posts ) {
-			$response['messages'][] = sprintf( __( 'Cleaning posts batch #%d.', 'qt-import' ), $qt_clean_batch );
+			$this->response['messages'][] = sprintf( __( 'Cleaning posts batch #%d.', 'qt-import' ), $qt_clean_batch );
 			foreach ( $posts as $post_id ) {
 				$this->clean_post( $post_id, $_POST['lang'] );
 				$processed_posts[] = $post_id;
 			}
-			$response['messages'][] = sprintf( __( 'Finished clean batch #%d. Posts processed: %d.', 'qt-import' ), $qt_clean_batch, self::BATCH_SIZE );
+			$this->response['messages'][] = sprintf( __( 'Finished clean batch #%d. Posts processed: %d.', 'qt-import' ), $qt_clean_batch, self::BATCH_SIZE );
 
 			// Are there more?
 			$posts = $wpdb->get_col( "
@@ -718,17 +718,17 @@ class QT_Importer {
                 LIMIT 1
             " );
 			if ( $posts ) {
-				$response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
-				$response['keepgoing']  = 1;
+				$this->response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
+				$this->response['keepgoing']  = 1;
 			} else {
-				$response['keepgoing'] = 0;
+				$this->response['keepgoing'] = 0;
 			}
 		} else {
 			if ( $qt_clean_batch > 1 ) {
-				$response['messages'][] = __( 'Finished.', 'qt-import' );
+				$this->response['messages'][] = __( 'Finished.', 'qt-import' );
 				update_option( '_qt_importer_clean_has_run', 1 );
 			} else {
-				$response['messages'][] = __( 'No posts to clean.', 'qt-import' );
+				$this->response['messages'][] = __( 'No posts to clean.', 'qt-import' );
 			}
 
 			// terms
@@ -740,13 +740,13 @@ class QT_Importer {
 				}
 			}
 
-			$response['keepgoing'] = 0;
+			$this->response['keepgoing'] = 0;
 		}
 
 
-		$response['messages'][] = '****************************************<br />';
+		$this->response['messages'][] = '****************************************<br />';
 
-		echo json_encode( $response );
+		echo json_encode( $this->response );
 		exit;
 
 	}
