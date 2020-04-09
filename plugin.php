@@ -20,18 +20,22 @@ class QT_Importer {
 
 	function __construct() {
 		$this->qt_default_language = strtolower( get_option( 'qtranslate_default_language' ) );
-		$this->qt_active_languages = get_option( 'qtranslate_enabled_languages' );
-		foreach ( $this->qt_active_languages as $key => $l ) {
-			$l                                 = strtolower( $l );
-			$this->qt_active_languages[ $key ] = $l;
-		}
-		$this->qt_url_mode = get_option( 'qtranslate_url_mode' );
-		if ( ! $this->qt_url_mode ) {
-			$this->qt_url_mode = 2;
-		}
-
+        $this->set_qt_active_languages();
+        $this->set_qt_url_mode();
 		$this->add_hooks();
 	}
+
+	private function set_qt_active_languages() {
+		$this->qt_active_languages = get_option( 'qtranslate_enabled_languages' );
+		$this->qt_active_languages = array_map( 'strtolower', $this->qt_active_languages );
+    }
+    
+    private function set_qt_url_mode() {
+	    $this->qt_url_mode = get_option( 'qtranslate_url_mode' );
+	    if ( ! $this->qt_url_mode ) {
+		    $this->qt_url_mode = 2;
+	    }
+    }
 
 	public function add_hooks() {
 		add_action( 'init', array( $this, 'init' ), 100 );
@@ -530,7 +534,7 @@ class QT_Importer {
                 <p>
 					<?php printf( __( 'The following languages will be imported: %s', 'qt-import' ), '<strong>' . join( '</strong>, <strong>', $this->qt_active_languages ) . '</strong>' ); ?>
                     .
-					<?php printf( __( '%s will be set as the default language.', 'qt-import' ), '<strong>' . $this->qt_active_languages[ $this->qt_default_language ] . '</strong>' ); ?>
+					<?php printf( __( '%s will be set as the default language.', 'qt-import' ), '<strong>' . $active_languages[ $this->qt_default_language ] . '</strong>' ); ?>
                 </p>
 
 				<?php $qtimport_status = get_option( '_qt_import_status' ); ?>
