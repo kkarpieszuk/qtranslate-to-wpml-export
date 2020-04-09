@@ -16,9 +16,12 @@ class QT_Importer {
 	private $qt_default_language;
 	private $qt_active_languages;
 	private $qt_url_mode;
+	private $wpdb;
 	const BATCH_SIZE = 10;
 
 	function __construct() {
+	    global $wpdb;
+	    $this->wpdb = $wpdb;
         $this->set_qt_default_language();
         $this->set_qt_active_languages();
         $this->set_qt_url_mode();
@@ -52,7 +55,7 @@ class QT_Importer {
 		add_filter( 'contextual_help', array( $this, 'help' ), 10, 3 );
     }
 
-	function init() {
+	public function init() {
 		load_plugin_textdomain( 'qt-import', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
 		$this->maybe_show_php_redirects_file();
 		wp_enqueue_script( 'qtimport', plugins_url( basename( dirname( __FILE__ ) ) ) . '/scripts.js' );
@@ -64,32 +67,13 @@ class QT_Importer {
 		update_option( '_qt_import_status', $qtimport_status );
 	}
 
-	private function exit_on_wrong_import_nonce() {
-		if ( ! wp_verify_nonce( $_POST['qt_nonce'], 'qt_import_ajx' ) ) {
-			$response['messages'][] = __( 'Invalid nonce', 'qt-import' );
-			$response['keepgoing']  = 0;
-			echo json_encode( $response );
-			exit;
-		}
-    }
-
-	function import_ajx() {
+	public function import_ajx() {
 		$this->exit_on_wrong_import_nonce();
 		global $wpdb;
 
 		$response['messages'][] = __( 'Looking for previously imported posts.', 'qt-import' );
-		//get posts
-		$processed_posts = $wpdb->get_col( "SELECT post_id FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id 
-            WHERE meta_key = '_qt_imported' AND p.post_type NOT IN ('attachment', 'nav_menu_item', 'revision')" );
-		$where           = '';
-		if ( $processed_posts ) {
-			$where = " ID NOT IN(" . join( ',', $processed_posts ) . ") AND ";
-		}
-		$posts = $wpdb->get_col( "
-            SELECT ID FROM {$wpdb->posts} p 
-            WHERE {$where} ( post_title LIKE '[:%' OR post_title LIKE '<!--:%' OR post_content LIKE '[:%' OR post_content LIKE '<!--:%' ) AND p.post_type NOT IN ('attachment', 'nav_menu_item', 'revision')
-            LIMIT " . self::BATCH_SIZE . "
-        " );
+		$processed_posts = $this->get_already_processed_posts();
+		$posts = $this->get_posts_to_import( $processed_posts, self::BATCH_SIZE );
 
 		if ( $posts ) {
 			$qt_import_batch        = isset( $_POST['qt_import_batch'] ) ? $_POST['qt_import_batch'] : 1;
@@ -101,11 +85,7 @@ class QT_Importer {
 			$response['messages'][] = sprintf( __( 'Finished import batch #%d. Imported %d posts.', 'qt-import' ), $qt_import_batch, self::BATCH_SIZE );
 
 			// Are there more?
-			$posts = $wpdb->get_col( "
-                SELECT ID FROM {$wpdb->posts} p 
-                WHERE ID NOT IN(" . join( ',', $processed_posts ) . ") AND ( post_title LIKE '[:%' OR post_title LIKE '<!--:%' OR post_content LIKE '[:%' OR post_content LIKE '<!--:%' ) AND p.post_type NOT IN ('attachment', 'nav_menu_item', 'revision')
-                LIMIT 1
-            " );
+			$posts = $this->get_posts_to_import( $processed_posts, 1 );
 			if ( $posts ) {
 				$response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
 				$response['keepgoing']  = 1;
@@ -132,6 +112,36 @@ class QT_Importer {
 		echo json_encode( $response );
 		exit;
 
+	}
+
+	private function get_already_processed_posts() {
+		return $this->wpdb->get_col( "SELECT post_id FROM {$this->wpdb->postmeta} m JOIN {$this->wpdb->posts} p ON p.ID = m.post_id 
+            WHERE meta_key = '_qt_imported' AND p.post_type NOT IN ('attachment', 'nav_menu_item', 'revision')" );
+	}
+
+	private function get_posts_to_import( $processed_posts, $limit ) {
+		$where = '';
+		if ( $processed_posts ) {
+			$where = " ID NOT IN(" . join( ',', $processed_posts ) . ") AND ";
+		}
+		return $this->wpdb->get_col( "
+            SELECT ID FROM {$this->wpdb->posts} p 
+            WHERE {$where} ( post_title LIKE '[:%' OR 
+            				 post_title LIKE '<!--:%' OR 
+            				 post_content LIKE '[:%' OR 
+            				 post_content LIKE '<!--:%' ) AND 
+            				 p.post_type NOT IN ('attachment', 'nav_menu_item', 'revision')
+            LIMIT " . $limit . "
+        " );
+	}
+
+	private function exit_on_wrong_import_nonce() {
+		if ( ! wp_verify_nonce( $_POST['qt_nonce'], 'qt_import_ajx' ) ) {
+			$response['messages'][] = __( 'Invalid nonce', 'qt-import' );
+			$response['keepgoing']  = 0;
+			echo json_encode( $response );
+			exit;
+		}
 	}
 
 	function fix_links_ajx() {
