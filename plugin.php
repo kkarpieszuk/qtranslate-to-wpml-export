@@ -13,21 +13,21 @@ Tested up to: 5.1.1
 
 class QT_Importer {
 
-	var $default_language;
-	var $active_languages;
-	var $url_mode;
+	var $qt_default_language;
+	var $qt_active_languages;
+	var $qt_url_mode;
 	const BATCH_SIZE = 10;
 
 	function __construct() {
-		$this->default_language = strtolower( get_option( 'qtranslate_default_language' ) );
-		$this->active_languages = get_option( 'qtranslate_enabled_languages' );
-		foreach ( $this->active_languages as $key => $l ) {
-			$l                              = strtolower( $l );
-			$this->active_languages[ $key ] = $l;
+		$this->qt_default_language = strtolower( get_option( 'qtranslate_default_language' ) );
+		$this->qt_active_languages = get_option( 'qtranslate_enabled_languages' );
+		foreach ( $this->qt_active_languages as $key => $l ) {
+			$l                                 = strtolower( $l );
+			$this->qt_active_languages[ $key ] = $l;
 		}
-		$this->url_mode = get_option( 'qtranslate_url_mode' );
-		if ( ! $this->url_mode ) {
-			$this->url_mode = 2;
+		$this->qt_url_mode = get_option( 'qtranslate_url_mode' );
+		if ( ! $this->qt_url_mode ) {
+			$this->qt_url_mode = 2;
 		}
 
 		add_action( 'init', array( $this, 'init' ), 100 );
@@ -268,7 +268,7 @@ class QT_Importer {
 				$i ++;
 				unset( $term_translations[ $key ] );
 
-				$default_term = $term[ $this->default_language ];
+				$default_term = $term[ $this->qt_default_language ];
 				// get term id
 				$term_id = $wpdb->get_var( $wpdb->prepare( "SELECT term_id FROM {$wpdb->terms} WHERE name = %s", $default_term ) );
 
@@ -286,13 +286,13 @@ class QT_Importer {
 						continue;
 					}
 
-					$sitepress->set_element_language_details( $taxonomy->term_taxonomy_id, 'tax_' . $taxonomy->taxonomy, null, $this->_lang_map( $this->default_language ) );
+					$sitepress->set_element_language_details( $taxonomy->term_taxonomy_id, 'tax_' . $taxonomy->taxonomy, null, $this->_lang_map( $this->qt_default_language ) );
 					// get its trid
 					$trid = $sitepress->get_element_trid( $taxonomy->term_taxonomy_id, 'tax_' . $taxonomy->taxonomy );
 
-					foreach ( $this->active_languages as $lang ) {
+					foreach ( $this->qt_active_languages as $lang ) {
 
-						if ( ( $lang != $this->default_language ) && isset( $term[ $lang ] ) ) {
+						if ( ( $lang != $this->qt_default_language ) && isset( $term[ $lang ] ) ) {
 
 							if ( icl_object_id( $term_id, $taxonomy->taxonomy, false, $this->_lang_map( $lang ) ) ) {
 								continue;
@@ -338,7 +338,7 @@ class QT_Importer {
                     FROM {$wpdb->term_taxonomy} x
                     JOIN {$wpdb->prefix}icl_translations t ON x.term_taxonomy_id = t.element_id
                         WHERE t.element_type LIKE 'tax\\_%'
-                            AND t.language_code = '" . $this->_lang_map( $this->default_language ) . "'
+                            AND t.language_code = '" . $this->_lang_map( $this->qt_default_language ) . "'
                             AND x.parent > 0
                     " );
 				$qt_terms_batch = 1; //reset batch value
@@ -353,13 +353,13 @@ class QT_Importer {
 				$i ++;
 				unset( $taxonomies[ $key ] );
 
-				foreach ( $this->active_languages as $lang ) {
-					if ( $lang != $this->default_language ) {
+				foreach ( $this->qt_active_languages as $lang ) {
+					if ( $lang != $this->qt_default_language ) {
 
 						$trid = $sitepress->get_element_trid( $tax->term_taxonomy_id, 'tax_' . $tax->taxonomy );
 
 						if ( empty( $trid ) ) {
-							$sitepress->set_element_language_details( $tax->term_taxonomy_id, 'tax' . $tax->taxonomy, null, $this->_lang_map( $this->default_language ) );
+							$sitepress->set_element_language_details( $tax->term_taxonomy_id, 'tax' . $tax->taxonomy, null, $this->_lang_map( $this->qt_default_language ) );
 							continue;
 						}
 
@@ -446,7 +446,7 @@ class QT_Importer {
 			}
 
 
-			foreach ( $this->active_languages as $code ) {
+			foreach ( $this->qt_active_languages as $code ) {
 				if ( isset( $language_names[ $code ] ) ) {
 					$active_languages[ $code ] = $language_names[ $code ];
 				}
@@ -470,7 +470,7 @@ class QT_Importer {
 							<?php _e( 'Keep this language:', 'qt-import' ); ?>
                             <select name="language_keep">
                                 <option value=""><?php _e( '-- select --', 'qt-import' ); ?></option>
-								<?php foreach ( $this->active_languages as $lang ): ?>
+								<?php foreach ( $this->qt_active_languages as $lang ): ?>
                                     <option value="<?php echo $lang ?>"><?php echo $active_languages[ $lang ] ?></option>
 								<?php endforeach; ?>
                             </select>
@@ -531,9 +531,9 @@ class QT_Importer {
 					<?php _e( 'The links to the translated versions of the posts will change according to the new posts that will be created. Existing links inside posts will be fixed and, also, the last step of the import process will generate a list of permanent redirects in order not to break existing links in.', 'qt-import' ) ?>
                 </p>
                 <p>
-					<?php printf( __( 'The following languages will be imported: %s', 'qt-import' ), '<strong>' . join( '</strong>, <strong>', $this->active_languages ) . '</strong>' ); ?>
+					<?php printf( __( 'The following languages will be imported: %s', 'qt-import' ), '<strong>' . join( '</strong>, <strong>', $this->qt_active_languages ) . '</strong>' ); ?>
                     .
-					<?php printf( __( '%s will be set as the default language.', 'qt-import' ), '<strong>' . $this->active_languages[ $this->default_language ] . '</strong>' ); ?>
+					<?php printf( __( '%s will be set as the default language.', 'qt-import' ), '<strong>' . $this->qt_active_languages[ $this->qt_default_language ] . '</strong>' ); ?>
                 </p>
 
 				<?php $qtimport_status = get_option( '_qt_import_status' ); ?>
@@ -957,8 +957,8 @@ class QT_Importer {
 					}
 				} else {
 					// copying all the other custom fields
-					foreach ( $this->active_languages as $lang ) {
-						if ( $this->default_language != $lang ) {
+					foreach ( $this->qt_active_languages as $lang ) {
+						if ( $this->qt_default_language != $lang ) {
 							$langs[ $lang ]['custom_fields'][ $cf->meta_key ] = $cf->meta_value;
 						}
 					}
@@ -969,7 +969,7 @@ class QT_Importer {
 			//echo $post_id . "------------------------";
 
 			// put the default language in front
-			$active_languages = array_merge( array( $this->default_language ), array_diff( $this->active_languages, array( $this->default_language ) ) );
+			$active_languages = array_merge( array( $this->qt_default_language ), array_diff( $this->qt_active_languages, array( $this->qt_default_language ) ) );
 
 
 			// handle empty titles
@@ -980,9 +980,9 @@ class QT_Importer {
 			}
 
 			// if the post in the default language does not exist pick a different post as a 'source'
-			if ( empty( $langs[ $this->default_language ] ) ) {
+			if ( empty( $langs[ $this->qt_default_language ] ) ) {
 				foreach ( $active_languages as $language ) {
-					if ( $language != $this->default_language && ! empty( $langs[ $language ]['title'] ) ) {
+					if ( $language != $this->qt_default_language && ! empty( $langs[ $language ]['title'] ) ) {
 						$langs[ $language ]['__icl_source'] = true;
 						break;
 					}
@@ -1013,11 +1013,11 @@ class QT_Importer {
 					), 11, 2 );
 				}
 
-				if ( $language == $this->default_language || ! empty( $langs[ $language ]['__icl_source'] ) ) {
+				if ( $language == $this->qt_default_language || ! empty( $langs[ $language ]['__icl_source'] ) ) {
 
 					$trid = $sitepress->get_element_trid( $post['ID'], 'post' . $post['post_type'] );
 					if ( is_null( $trid ) ) {
-						$sitepress->set_element_language_details( $post['ID'], 'post_' . $post['post_type'], null, $this->_lang_map( $this->default_language ) );
+						$sitepress->set_element_language_details( $post['ID'], 'post_' . $post['post_type'], null, $this->_lang_map( $this->qt_default_language ) );
 					}
 
 					$id = wp_update_post( $post );
@@ -1082,12 +1082,12 @@ class QT_Importer {
 						$_qt_redirects_map = get_option( '_qt_redirects_map' );
 
 						$original_url = get_permalink( $post['ID'] );
-						if ( $this->url_mode == 1 ) {
+						if ( $this->qt_url_mode == 1 ) {
 							$glue         = false === strpos( $original_url, '?' ) ? '?' : '&';
 							$original_url .= $glue . 'lang=' . $language;
-						} elseif ( $this->url_mode == 2 ) {
+						} elseif ( $this->qt_url_mode == 2 ) {
 							$original_url = str_replace( home_url(), rtrim( home_url(), '/' ) . '/' . $language, $original_url );
-						} elseif ( $this->url_mode == 2 ) {
+						} elseif ( $this->qt_url_mode == 2 ) {
 							$parts        = parse_url( home_url() );
 							$original_url = str_replace( $parts['host'], $language . '.' . $parts['host'], $original_url );
 						}
@@ -1115,7 +1115,7 @@ class QT_Importer {
 			$comments = $wpdb->get_col( $wpdb->prepare( "SELECT comment_ID FROM {$wpdb->comments} WHERE comment_post_ID = %d", $post['ID'] ) );
 			if ( $comments ) {
 				foreach ( $comments as $comment_id ) {
-					$sitepress->set_element_language_details( $comment_id, 'comment', null, $this->_lang_map( $this->default_language ) );
+					$sitepress->set_element_language_details( $comment_id, 'comment', null, $this->_lang_map( $this->qt_default_language ) );
 				}
 			}
 
@@ -1156,18 +1156,18 @@ class QT_Importer {
 		$WPML_Installation->set_active_languages( array_map( array(
 			$this,
 			'_lang_map'
-		), $this->active_languages ) );
+		), $this->qt_active_languages ) );
 
 		if ( empty( $sitepress_settings['default_categories'] ) ) {
 			$blog_default_cat        = get_option( 'default_category' );
 			$blog_default_cat_tax_id = $wpdb->get_var( "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} 
                 WHERE term_id='{$blog_default_cat}' AND taxonomy='category'" );
-			$default_categories      = array( $this->_lang_map( $this->default_language ) => $blog_default_cat_tax_id );
+			$default_categories      = array( $this->_lang_map( $this->qt_default_language ) => $blog_default_cat_tax_id );
 		} else {
 			$default_categories = $sitepress->get_setting( 'default_categories', array() );
 		}
 
-		foreach ( $this->active_languages as $l ) {
+		foreach ( $this->qt_active_languages as $l ) {
 			$lang = $this->_lang_map( $l );
 
 			if ( ! isset( $default_categories[ $lang ] ) ) {
@@ -1178,7 +1178,7 @@ class QT_Importer {
 
 				$default_category_trid = $sitepress->get_element_trid( $default_cat_tax_id, 'tax_category' );
 				if ( is_null( $default_category_trid ) ) {
-					$sitepress->set_element_language_details( $default_cat_tax_id, 'tax_category', null, $this->_lang_map( $this->default_language ) );
+					$sitepress->set_element_language_details( $default_cat_tax_id, 'tax_category', null, $this->_lang_map( $this->qt_default_language ) );
 					$default_category_trid = $sitepress->get_element_trid( $default_cat_tax_id, 'tax_category' );
 				}
 
@@ -1208,7 +1208,7 @@ class QT_Importer {
 
 		$iclsettings['default_categories'] = $default_categories;
 
-		$sitepress->set_default_language( $this->_lang_map( $this->default_language ) );
+		$sitepress->set_default_language( $this->_lang_map( $this->qt_default_language ) );
 
 		if ( get_option( 'qtranslate_detect_browser_language' ) ) {
 			$iclsettings['automatic_redirect'] = true;
@@ -1255,16 +1255,16 @@ class QT_Importer {
 
 		$lang = false;
 
-		if ( $this->url_mode == 1 ) {
+		if ( $this->qt_url_mode == 1 ) {
 			if ( preg_match( '#[\?&]lang=([a-z-]+)#', $url, $matches ) ) {
 				$lang = $this->_lang_map( $matches[1] );
 			}
-		} elseif ( $this->url_mode == 2 ) {
+		} elseif ( $this->qt_url_mode == 2 ) {
 			if ( preg_match( '#[/]?([^/]+)/#', str_replace( home_url(), '', $url ), $matches ) ) {
 				$original_language = $matches[1];
 				$lang              = $this->_lang_map( $original_language );
 			}
-		} elseif ( $this->url_mode == 3 ) {
+		} elseif ( $this->qt_url_mode == 3 ) {
 			$parts = parse_url( $url );
 			list( $lang ) = explode( '.', $parts['host'] );
 			if ( ! empty( $lang ) ) {
@@ -1287,10 +1287,10 @@ class QT_Importer {
 		$int2     = preg_match_all( '@<a([^>]*)href=\'((' . rtrim( $home_url, '/' ) . ')?/([^\'^>]+))\'([^>]*)>@i', $post->post_content, $alp_matches2 );
 
 
-		if ( $this->url_mode == 3 ) {
-			$active_languages = $this->active_languages;
+		if ( $this->qt_url_mode == 3 ) {
+			$active_languages = $this->qt_active_languages;
 			foreach ( $active_languages as $lang ) {
-				if ( $lang != $this->default_language ) {
+				if ( $lang != $this->qt_default_language ) {
 					$parts     = parse_url( $home_url );
 					$_home_url = $parts['scheme'] . '://' . $lang . '.' . $parts['host'] . $parts['path'];
 					$int_e[]   = preg_match_all( '@<a([^>]*)href="((' . rtrim( $_home_url, '/' ) . ')?/([^"^>]+))"([^>]*)>@i', $post->post_content, $alp_matches1_e[] );
@@ -1325,9 +1325,9 @@ class QT_Importer {
 					continue;
 				}
 
-				if ( $this->url_mode == 2 ) { // strip language off in order to get the base url
+				if ( $this->qt_url_mode == 2 ) { // strip language off in order to get the base url
 					$found_post_id = url_to_postid( str_replace( rtrim( $home_url, '/' ) . '/' . $language, rtrim( $home_url, '/' ), $found_url ) );
-				} elseif ( $this->url_mode == 3 ) { // strip language off in order to get the base url
+				} elseif ( $this->qt_url_mode == 3 ) { // strip language off in order to get the base url
 					$found_post_id = url_to_postid( preg_replace( '#^http(s?)://([^.]+)\.(.+)$#', 'http$1://' . '$3', $found_url ) );
 				} else {
 					$found_post_id = url_to_postid( $found_url );
@@ -1396,7 +1396,7 @@ class QT_Importer {
 		if ( is_array( $_qt_redirects_map ) ) {
 
 			foreach ( $_qt_redirects_map as $from => $to ) {
-				if ( $this->url_mode == 1 ) {
+				if ( $this->qt_url_mode == 1 ) {
 					$parts     = parse_url( $from );
 					$from_path = str_replace( $home_url, '', $from );
 					$from_path = preg_replace( '@[\?&]+' . $parts['query'] . '@', '', $from_path );
@@ -1413,7 +1413,7 @@ class QT_Importer {
 						$out .= sprintf( "RewriteRule ^%s %s [L,R=301]\n\r", ltrim( $from_path, '/' ), $to );
 					}
 
-				} elseif ( $this->url_mode == 2 ) {
+				} elseif ( $this->qt_url_mode == 2 ) {
 
 					$from = str_replace( $home_url, '', $from );
 
@@ -1425,7 +1425,7 @@ class QT_Importer {
 					), $from );
 					$out  .= sprintf( "RewriteRule ^%s %s [L,R=301]\n", ltrim( $from, '/' ), $to );
 
-				} elseif ( $this->url_mode == 3 ) {
+				} elseif ( $this->qt_url_mode == 3 ) {
 					$language = $this->_get_lang_from_url( $from );
 
 					$from_path = str_replace( preg_replace( '#^http(s?)://([^/]+)/(.*)$#', 'http$1://' . $language . '.$2/$3', $home_url ), '', $from );
