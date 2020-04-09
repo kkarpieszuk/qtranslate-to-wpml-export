@@ -18,6 +18,7 @@ class QT_Importer {
 	private $qt_url_mode;
 	private $wpdb;
 	private $response = [];
+	private $qt_import_batch;
 	const BATCH_SIZE = 10;
 
 	function __construct() {
@@ -89,15 +90,22 @@ class QT_Importer {
 	}
 
 	private function process_posts_batch( $posts, array $processed_posts ) {
-		$qt_import_batch        = isset( $_POST['qt_import_batch'] ) ? $_POST['qt_import_batch'] : 1;
-		$this->response['messages'][] = sprintf( __( 'Importing posts batch #%d.', 'qt-import' ), $qt_import_batch );
+		$this->before_process_post_batch();
 		foreach ( $posts as $post_id ) {
 			$this->process_post( $post_id );
 			$processed_posts[] = $post_id;
 		}
-		$this->response['messages'][] = sprintf( __( 'Finished import batch #%d. Imported %d posts.', 'qt-import' ), $qt_import_batch, self::BATCH_SIZE );
+		$this->after_process_post_batch( $processed_posts );
+	}
 
-		// Are there more?
+	private function before_process_post_batch() {
+		$this->qt_import_batch        = isset( $_POST['qt_import_batch'] ) ? $_POST['qt_import_batch'] : 1;
+		$this->response['messages'][] = sprintf( __( 'Importing posts batch #%d.', 'qt-import' ), $this->qt_import_batch );
+	}
+
+	private function after_process_post_batch( $processed_posts ) {
+		$this->response['messages'][] = sprintf( __( 'Finished import batch #%d. Imported %d posts.', 'qt-import' ), $this->qt_import_batch, self::BATCH_SIZE );
+		// Are there more posts?
 		$posts = $this->get_posts_to_import( $processed_posts, 1 );
 		if ( $posts ) {
 			$this->response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
