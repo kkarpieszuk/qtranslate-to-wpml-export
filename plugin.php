@@ -90,17 +90,11 @@ class QT_Importer {
 				$response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
 				$response['keepgoing']  = 1;
 			} else {
-
 				$this->_set_progress( 'posts', 1 );
-
 				$this->fix_hierarchy();
-
 				$this->_set_progress( 'hierarchy', 1 );
-
 				$response['keepgoing'] = 0;
-
 				$response['messages'][] = __( 'Start fixing links.', 'qt-import' );
-
 			}
 		} else {
 			$response['messages'][] = __( 'No posts to import.', 'qt-import' );
@@ -111,7 +105,6 @@ class QT_Importer {
 
 		echo json_encode( $response );
 		exit;
-
 	}
 
 	private function get_already_processed_posts() {
@@ -1479,7 +1472,7 @@ class QT_Importer {
 		}
     }
 
-	function php_redirects() {
+	private function php_redirects() {
 
 		$_qt_redirects_map = get_option( '_qt_redirects_map' );
 
@@ -1506,26 +1499,17 @@ class QT_Importer {
 		if ( ini_get( 'zlib.output_compression' ) ) {
 			ini_set( 'zlib.output_compression', 'Off' );
 		}
-
 		header( "Content-Type: text/plain" );
 		header( "Content-Disposition: attachment; filename=qt-importer-redirects.php;" );
 		header( "Content-Transfer-Encoding: binary" );
 		header( 'Accept-Ranges: bytes' );
-
 		header( "Cache-control: private" );
 		header( 'Pragma: private' );
 		header( "Expires: Mon, 26 Jul 1997 05:00:00 GMT" );
-
 		header( "Content-Length: " . strlen( $file ) );
-
-
 		echo $file;
 		exit( 0 );
-
-
 	}
-
-
 }
 
 $QT_Importer = new QT_Importer;
