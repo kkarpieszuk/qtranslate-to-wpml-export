@@ -105,7 +105,6 @@ class QT_Importer {
 		} else {
 			$this->_set_progress( 'posts', 1 );
 			$this->fix_hierarchy();
-			$this->_set_progress( 'hierarchy', 1 );
 			$this->response['keepgoing'] = 0;
 			$this->response['messages'][] = __( 'Start fixing links.', 'qt-import' );
 		}
@@ -1154,6 +1153,7 @@ class QT_Importer {
 				}
 			}
 		}
+		$this->_set_progress( 'hierarchy', 1 );
 	}
 
 	function map_wpml_settings() {
