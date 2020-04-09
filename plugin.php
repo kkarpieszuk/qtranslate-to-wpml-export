@@ -70,7 +70,6 @@ class QT_Importer {
 
 	public function import_ajx() {
 		$this->exit_on_wrong_import_nonce();
-		global $wpdb;
 
 		$this->response['messages'][] = __( 'Looking for previously imported posts.', 'qt-import' );
 		$processed_posts = $this->get_already_processed_posts();
