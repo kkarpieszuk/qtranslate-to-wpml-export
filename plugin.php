@@ -17,6 +17,7 @@ class QT_Importer {
 	private $qt_active_languages;
 	private $qt_url_mode;
 	private $wpdb;
+	private $response = [];
 	const BATCH_SIZE = 10;
 
 	function __construct() {
@@ -71,45 +72,51 @@ class QT_Importer {
 		$this->exit_on_wrong_import_nonce();
 		global $wpdb;
 
-		$response['messages'][] = __( 'Looking for previously imported posts.', 'qt-import' );
+		$this->response['messages'][] = __( 'Looking for previously imported posts.', 'qt-import' );
 		$processed_posts = $this->get_already_processed_posts();
 		$posts = $this->get_posts_to_import( $processed_posts, self::BATCH_SIZE );
 
 		if ( $posts ) {
-			$qt_import_batch        = isset( $_POST['qt_import_batch'] ) ? $_POST['qt_import_batch'] : 1;
-			$response['messages'][] = sprintf( __( 'Importing posts batch #%d.', 'qt-import' ), $qt_import_batch );
-			foreach ( $posts as $post_id ) {
-				$this->process_post( $post_id );
-				$processed_posts[] = $post_id;
-			}
-			$response['messages'][] = sprintf( __( 'Finished import batch #%d. Imported %d posts.', 'qt-import' ), $qt_import_batch, self::BATCH_SIZE );
-
-			// Are there more?
-			$posts = $this->get_posts_to_import( $processed_posts, 1 );
-			if ( $posts ) {
-				$response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
-				$response['keepgoing']  = 1;
-			} else {
-				$this->_set_progress( 'posts', 1 );
-				$this->fix_hierarchy();
-				$this->_set_progress( 'hierarchy', 1 );
-				$response['keepgoing'] = 0;
-				$response['messages'][] = __( 'Start fixing links.', 'qt-import' );
-			}
+			$this->process_posts_batch( $posts, $processed_posts );
 		} else {
-			$response['messages'][] = __( 'No posts to import.', 'qt-import' );
-			$response['keepgoing']  = 0;
+			$this->response['messages'][] = __( 'No posts to import.', 'qt-import' );
+			$this->response['keepgoing']  = 0;
 		}
 
-		$response['messages'][] = '****************************************<br />';
+		$this->response['messages'][] = '****************************************<br />';
 
-		echo json_encode( $response );
+		echo json_encode( $this->response );
 		exit;
 	}
 
+	private function process_posts_batch( $posts, array $processed_posts ) {
+		$qt_import_batch        = isset( $_POST['qt_import_batch'] ) ? $_POST['qt_import_batch'] : 1;
+		$this->response['messages'][] = sprintf( __( 'Importing posts batch #%d.', 'qt-import' ), $qt_import_batch );
+		foreach ( $posts as $post_id ) {
+			$this->process_post( $post_id );
+			$processed_posts[] = $post_id;
+		}
+		$this->response['messages'][] = sprintf( __( 'Finished import batch #%d. Imported %d posts.', 'qt-import' ), $qt_import_batch, self::BATCH_SIZE );
+
+		// Are there more?
+		$posts = $this->get_posts_to_import( $processed_posts, 1 );
+		if ( $posts ) {
+			$this->response['messages'][] = __( 'Preparing next batch.', 'qt-import' );
+			$this->response['keepgoing']  = 1;
+		} else {
+			$this->_set_progress( 'posts', 1 );
+			$this->fix_hierarchy();
+			$this->_set_progress( 'hierarchy', 1 );
+			$this->response['keepgoing'] = 0;
+			$this->response['messages'][] = __( 'Start fixing links.', 'qt-import' );
+		}
+	}
+
 	private function get_already_processed_posts() {
-		return $this->wpdb->get_col( "SELECT post_id FROM {$this->wpdb->postmeta} m JOIN {$this->wpdb->posts} p ON p.ID = m.post_id 
-            WHERE meta_key = '_qt_imported' AND p.post_type NOT IN ('attachment', 'nav_menu_item', 'revision')" );
+		return $this->wpdb->get_col(
+			"SELECT post_id FROM {$this->wpdb->postmeta} m JOIN {$this->wpdb->posts} p ON p.ID = m.post_id 
+            WHERE meta_key = '_qt_imported' AND p.post_type NOT IN ('attachment', 'nav_menu_item', 'revision')"
+		);
 	}
 
 	private function get_posts_to_import( $processed_posts, $limit ) {
