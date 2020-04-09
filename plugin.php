@@ -1017,7 +1017,7 @@ class QT_Importer{
             }
 
             if ( ! isset( $post_imported ) || ! $post_imported ) {
-	            update_post_meta($id, '_qt_imported', 'import_failed' );
+	            update_post_meta($post['ID'], '_qt_imported', 'import_failed' );
             }
             
             // handle comments
