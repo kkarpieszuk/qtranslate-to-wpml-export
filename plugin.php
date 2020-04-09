@@ -939,6 +939,7 @@ class QT_Importer{
                     
                     $id = wp_update_post($post);
                     update_post_meta($post['ID'], '_qt_imported', 'original');
+	                $post_imported = true;
                 }else{
                     $_POST['icl_translation_of'] = $post['ID'];                    
                     $post_copy = $post;
@@ -963,8 +964,9 @@ class QT_Importer{
                     
                     if(isset($sitepress_settings['sync_page_parent'])) $iclsettings['sync_page_parent'] = $icl_sync_page_parent;
                     $sitepress->save_settings($iclsettings);
-                    
+
                     update_post_meta($id, '_qt_imported', 'from-' . $post['ID']);
+	                $post_imported = true;
                     
                     unset($_POST['icl_translation_of'], $_POST['post_title'], $_POST['icl_post_language']);
                     
@@ -1012,6 +1014,10 @@ class QT_Importer{
                     }
                 }
                 
+            }
+
+            if ( ! isset( $post_imported ) || ! $post_imported ) {
+	            update_post_meta($id, '_qt_imported', 'import_failed' );
             }
             
             // handle comments
