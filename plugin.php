@@ -30,22 +30,19 @@ class QT_Importer {
 			$this->qt_url_mode = 2;
 		}
 
+		$this->add_hooks();
+	}
+
+	public function add_hooks() {
 		add_action( 'init', array( $this, 'init' ), 100 );
 		add_action( 'admin_menu', array( $this, 'menu_setup' ) );
-
 		add_action( 'wp_ajax_qt_terms_ajx', array( $this, '_import_terms' ) );
 		add_action( 'wp_ajax_qt_import_ajx', array( $this, 'import_ajx' ) );
 		add_action( 'wp_ajax_qt_fix_links_ajx', array( $this, 'fix_links_ajx' ) );
 		add_action( 'wp_ajax_qt_clean_ajx', array( $this, 'clean_ajx' ) );
-
-		add_action( 'wp_ajax_qt_verify_htaccess', array(
-			$this,
-			'verify_htaccess_ajx'
-		) );
-
+		add_action( 'wp_ajax_qt_verify_htaccess', array( $this, 'verify_htaccess_ajx' ) );
 		add_filter( 'contextual_help', array( $this, 'help' ), 10, 3 );
-
-	}
+    }
 
 	function init() {
 
