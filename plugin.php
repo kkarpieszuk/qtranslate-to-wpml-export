@@ -53,16 +53,9 @@ class QT_Importer {
     }
 
 	function init() {
-
 		load_plugin_textdomain( 'qt-import', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
-
-		if ( isset( $_POST['qt_download'] ) && $_POST['qt_download'] == wp_create_nonce( 'qt_download_redirects' ) ) {
-			$this->php_redirects();
-		}
-
-
+		$this->maybe_show_php_redirects_file();
 		wp_enqueue_script( 'qtimport', plugins_url( basename( dirname( __FILE__ ) ) ) . '/scripts.js' );
-
 	}
 
 	function _set_progress( $step, $value ) {
@@ -71,15 +64,17 @@ class QT_Importer {
 		update_option( '_qt_import_status', $qtimport_status );
 	}
 
-	function import_ajx() {
+	private function exit_on_wrong_import_nonce() {
 		if ( ! wp_verify_nonce( $_POST['qt_nonce'], 'qt_import_ajx' ) ) {
 			$response['messages'][] = __( 'Invalid nonce', 'qt-import' );
 			$response['keepgoing']  = 0;
-
 			echo json_encode( $response );
 			exit;
 		}
+    }
 
+	function import_ajx() {
+		$this->exit_on_wrong_import_nonce();
 		global $wpdb;
 
 		$response['messages'][] = __( 'Looking for previously imported posts.', 'qt-import' );
@@ -1467,6 +1462,12 @@ class QT_Importer {
 		exit;
 
 	}
+
+	private function maybe_show_php_redirects_file() {
+		if ( isset( $_POST['qt_download'] ) && $_POST['qt_download'] == wp_create_nonce( 'qt_download_redirects' ) ) {
+			$this->php_redirects();
+		}
+    }
 
 	function php_redirects() {
 
