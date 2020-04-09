@@ -915,7 +915,7 @@ class QT_Importer {
 				$languages[ $key ] = $l;
 			}
 			foreach ( $exp as $key => $e ) {
-				$langs[ $languages[ $key ] ]['content'] .= $e;
+				$langs[ $languages[ $key ] ] = ['content' => $e ];
 				if ( $key == 0 && count( $exp ) > 2 ) { // if post has <!--more--> tag, add this tag to first language as well
 					$langs[ $languages[ $key ] ]['content'] .= "<!--more-->";
 				}
