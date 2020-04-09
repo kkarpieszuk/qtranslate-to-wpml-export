@@ -13,17 +13,21 @@ Tested up to: 5.1.1
 
 class QT_Importer {
 
-	var $qt_default_language;
-	var $qt_active_languages;
-	var $qt_url_mode;
+	private $qt_default_language;
+	private $qt_active_languages;
+	private $qt_url_mode;
 	const BATCH_SIZE = 10;
 
 	function __construct() {
-		$this->qt_default_language = strtolower( get_option( 'qtranslate_default_language' ) );
+        $this->set_qt_default_language();
         $this->set_qt_active_languages();
         $this->set_qt_url_mode();
 		$this->add_hooks();
 	}
+
+	private function set_qt_default_language() {
+		$this->qt_default_language = strtolower( get_option( 'qtranslate_default_language' ) );
+    }
 
 	private function set_qt_active_languages() {
 		$this->qt_active_languages = get_option( 'qtranslate_enabled_languages' );
