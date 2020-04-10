@@ -21,6 +21,25 @@ class Single_Post {
 		$this->qt_url_mode = $qt_url_mode;
 	}
 
+	private function add_elements_to_posts_to_create( $posts_to_create, $post, $element_type ) {
+		$elements_by_language = preg_split( '#\[:([a-z]{2})\]#', $post[ $element_type ] );
+		array_shift( $elements_by_language );
+		preg_match_all( '#\[:([a-z]{2})\]#', $post['post_title'], $matches );
+		$languages = $matches['1'];
+		foreach ( $languages as $key => $language_code ) {
+			$language_code                 = strtolower( $language_code );
+			$languages[ $key ] = $language_code;
+		}
+		foreach ( $elements_by_language as $key => $element ) {
+			$posts_to_create[ $languages[ $key ] ][ $element_type ] = $element;
+			if ( 'post_content' === $element_type && $key === 0 && count( $elements_by_language ) > 2 ) { // if post has <!--more--> tag, add this tag to first language as well
+				$posts_to_create[ $languages[ $key ] ][ $element_type ] .= "<!--more-->"; // @todo adds this incorrectly now, to every post which has more than 2 languages
+			}
+		};
+
+		return $posts_to_create;
+	}
+
 	public function process_post( $post_id ) {
 		global $sitepress, $sitepress_settings;
 
@@ -32,47 +51,16 @@ class Single_Post {
 
 		if ( $post ) {
 
+			$posts_to_create = [];
+
 			$post['post_title'] = $this->replace_legacies_in_post_element( $post['post_title'] );
-			$exp = preg_split( '#\[:([a-z]{2})\]#', $post['post_title'] );
-			array_shift( $exp );
-			preg_match_all( '#\[:([a-z]{2})\]#', $post['post_title'], $matches );
-			$languages = $matches['1'];
-			foreach ( $languages as $key => $l ) {
-				$l                 = strtolower( $l );
-				$languages[ $key ] = $l;
-			}
-			foreach ( $exp as $key => $e ) {
-				$langs[ $languages[ $key ] ]['title'] = $e;
-			};
+			$posts_to_create = $this->add_elements_to_posts_to_create( $posts_to_create, $post, 'post_title' );
 
 			$post['post_content'] = $this->replace_legacies_in_post_element( $post['post_content'] );
-			$exp = preg_split( '#\[:([a-z]{2})\]#', $post['post_content'] );
-			array_shift( $exp );
-			preg_match_all( '#\[:([a-z]{2})\]#', $post['post_content'], $matches );
-			$languages = $matches['1'];
-			foreach ( $languages as $key => $l ) {
-				$l                 = strtolower( $l );
-				$languages[ $key ] = $l;
-			}
-			foreach ( $exp as $key => $e ) {
-				$langs[ $languages[ $key ] ] = ['content' => $e ];
-				if ( $key == 0 && count( $exp ) > 2 ) { // if post has <!--more--> tag, add this tag to first language as well
-					$langs[ $languages[ $key ] ]['content'] .= "<!--more-->";
-				}
-			};
+			$posts_to_create = $this->add_elements_to_posts_to_create( $posts_to_create, $post, 'post_content' );
 
 			$post['post_excerpt'] = $this->replace_legacies_in_post_element( $post['post_excerpt'] );
-			$exp = preg_split( '#\[:([a-z]{2})\]#', $post['post_excerpt'] );
-			array_shift( $exp );
-			preg_match_all( '#\[:([a-z]{2})\]#', $post['post_excerpt'], $matches );
-			$languages = $matches['1'];
-			foreach ( $languages as $key => $l ) {
-				$l                 = strtolower( $l );
-				$languages[ $key ] = $l;
-			}
-			foreach ( $exp as $key => $e ) {
-				$langs[ $languages[ $key ] ]['excerpt'] = $e;
-			};
+			$posts_to_create = $this->add_elements_to_posts_to_create( $posts_to_create, $post, 'post_excerpt' );
 
 			$custom_fields = $this->wpdb->get_results( $this->wpdb->prepare( "SELECT meta_key, meta_value FROM {$this->wpdb->postmeta} WHERE post_id=%d", $post_id ) );
 			foreach ( $custom_fields as $cf ) {
@@ -80,24 +68,24 @@ class Single_Post {
 				if ( ! is_serialized( $cf->meta_value ) ) {
 
 					$cf->meta_value = $this->replace_legacies_in_post_element( $cf->meta_value );
-					$exp = preg_split( '#\[:([a-z]{2})\]#', $cf->meta_value );
-					array_shift( $exp );
+					$elements_by_language = preg_split( '#\[:([a-z]{2})\]#', $cf->meta_value );
+					array_shift( $elements_by_language );
 					preg_match_all( '#\[:([a-z]{2})\]#', $cf->meta_value, $matches );
 					$languages = $matches['1'];
-					foreach ( $languages as $key => $l ) {
-						$l                 = strtolower( $l );
-						$languages[ $key ] = $l;
+					foreach ( $languages as $key => $language_code ) {
+						$language_code                 = strtolower( $language_code );
+						$languages[ $key ] = $language_code;
 					}
-					foreach ( $exp as $key => $e ) {
+					foreach ( $elements_by_language as $key => $element ) {
 						if ( isset( $matches[2] ) ) {
-							$langs[ $lang ]['custom_fields'][ $cf->meta_key ] = $matches[2];
+							$posts_to_create[ $lang ]['custom_fields'][ $cf->meta_key ] = $matches[2]; // @todo $lang does not exist so check what is going on here
 						}
 					}
 				} else {
 					// copying all the other custom fields
 					foreach ( $this->qt_active_languages as $lang ) {
 						if ( $this->qt_default_language != $lang ) {
-							$langs[ $lang ]['custom_fields'][ $cf->meta_key ] = $cf->meta_value;
+							$posts_to_create[ $lang ]['custom_fields'][ $cf->meta_key ] = $cf->meta_value;
 						}
 					}
 				}
@@ -112,16 +100,16 @@ class Single_Post {
 
 			// handle empty titles
 			foreach ( $active_languages as $language ) {
-				if ( empty( $langs[ $language ]['title'] ) && ! empty( $langs[ $language ]['content'] ) ) {
-					$langs[ $language ]['title'] = $post['post_title'];
+				if ( empty( $posts_to_create[ $language ]['post_title'] ) && ! empty( $posts_to_create[ $language ]['post_content'] ) ) {
+					$posts_to_create[ $language ]['post_title'] = $post['post_title'];
 				}
 			}
 
 			// if the post in the default language does not exist pick a different post as a 'source'
-			if ( empty( $langs[ $this->qt_default_language ] ) ) {
+			if ( empty( $posts_to_create[ $this->qt_default_language ] ) ) {
 				foreach ( $active_languages as $language ) {
-					if ( $language != $this->qt_default_language && ! empty( $langs[ $language ]['title'] ) ) {
-						$langs[ $language ]['__icl_source'] = true;
+					if ( $language != $this->qt_default_language && ! empty( $posts_to_create[ $language ]['post_title'] ) ) {
+						$posts_to_create[ $language ]['__icl_source'] = true;
 						break;
 					}
 				}
@@ -131,14 +119,14 @@ class Single_Post {
 
 				//echo $language . "------------------------";
 
-				if ( empty( $langs[ $language ]['title'] ) ) {
+				if ( empty( $posts_to_create[ $language ]['post_title'] ) ) {
 					continue;
 				} // obslt
 
-				$post['post_title']   = $langs[ $language ]['title'];
-				$post['post_content'] = isset( $langs[ $language ]['content'] ) ? $langs[ $language ]['content'] : '';
-				if ( isset( $langs[ $language ]['excerpt'] ) ) {
-					$post['post_excerpt'] = $langs[ $language ]['excerpt'];
+				$post['post_title']   = $posts_to_create[ $language ]['post_title'];
+				$post['post_content'] = isset( $posts_to_create[ $language ]['post_content'] ) ? $posts_to_create[ $language ]['post_content'] : '';
+				if ( isset( $posts_to_create[ $language ]['post_excerpt'] ) ) {
+					$post['post_excerpt'] = $posts_to_create[ $language ]['post_excerpt'];
 				}
 				$_POST['icl_post_language'] = $this->utils->_lang_map( $language );
 				$_POST['post_title']        = $post['post_title'];
@@ -151,7 +139,7 @@ class Single_Post {
 					), 11, 2 );
 				}
 
-				if ( $language == $this->qt_default_language || ! empty( $langs[ $language ]['__icl_source'] ) ) {
+				if ( $language == $this->qt_default_language || ! empty( $posts_to_create[ $language ]['__icl_source'] ) ) {
 
 					$trid = $sitepress->get_element_trid( $post['ID'], 'post' . $post['post_type'] );
 					if ( is_null( $trid ) ) {
@@ -237,8 +225,8 @@ class Single_Post {
 
 				}
 
-				if ( ! empty( $langs[ $language ]['custom_fields'] ) ) {
-					foreach ( $langs[ $language ]['custom_fields'] as $k => $v ) {
+				if ( ! empty( $posts_to_create[ $language ]['custom_fields'] ) ) {
+					foreach ( $posts_to_create[ $language ]['custom_fields'] as $k => $v ) {
 						update_post_meta( $id, $k, $v );
 					}
 				}
