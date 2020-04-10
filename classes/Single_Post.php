@@ -21,25 +21,6 @@ class Single_Post {
 		$this->qt_url_mode = $qt_url_mode;
 	}
 
-	private function add_elements_to_posts_to_create( $posts_to_create, $post, $element_type ) {
-		$elements_by_language = preg_split( '#\[:([a-z]{2})\]#', $post[ $element_type ] );
-		array_shift( $elements_by_language );
-		preg_match_all( '#\[:([a-z]{2})\]#', $post['post_title'], $matches );
-		$languages = $matches['1'];
-		foreach ( $languages as $key => $language_code ) {
-			$language_code                 = strtolower( $language_code );
-			$languages[ $key ] = $language_code;
-		}
-		foreach ( $elements_by_language as $key => $element ) {
-			$posts_to_create[ $languages[ $key ] ][ $element_type ] = $element;
-			if ( 'post_content' === $element_type && $key === 0 && count( $elements_by_language ) > 2 ) { // if post has <!--more--> tag, add this tag to first language as well
-				$posts_to_create[ $languages[ $key ] ][ $element_type ] .= "<!--more-->"; // @todo adds this incorrectly now, to every post which has more than 2 languages
-			}
-		};
-
-		return $posts_to_create;
-	}
-
 	public function process_post( $post_id ) {
 		global $sitepress, $sitepress_settings;
 
@@ -256,5 +237,24 @@ class Single_Post {
 			$post_element = substr( $post_element, 0, strlen( $post_element ) - 3 );
 		}
 		return $post_element;
+	}
+
+	private function add_elements_to_posts_to_create( $posts_to_create, $post, $element_type ) {
+		$elements_by_language = preg_split( '#\[:([a-z]{2})\]#', $post[ $element_type ] );
+		array_shift( $elements_by_language );
+		preg_match_all( '#\[:([a-z]{2})\]#', $post['post_title'], $matches );
+		$languages = $matches['1'];
+		foreach ( $languages as $key => $language_code ) {
+			$language_code                 = strtolower( $language_code );
+			$languages[ $key ] = $language_code;
+		}
+		foreach ( $elements_by_language as $key => $element ) {
+			$posts_to_create[ $languages[ $key ] ][ $element_type ] = $element; // @todo check "PHP Notice:  Undefined offset: 0 ...", I guess $key is 0
+			if ( 'post_content' === $element_type && $key === 0 && count( $elements_by_language ) > 2 ) { // if post has <!--more--> tag, add this tag to first language as well
+				$posts_to_create[ $languages[ $key ] ][ $element_type ] .= "<!--more-->"; // @todo adds this incorrectly now, to every post which has more than 2 languages
+			}
+		};
+
+		return $posts_to_create;
 	}
 }
