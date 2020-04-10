@@ -874,7 +874,7 @@ class QT_Importer {
 	}
 
 	function process_post( $post_id ) {
-		global $sitepress, $wpdb, $sitepress_settings;
+		global $sitepress, $sitepress_settings;
 
 		if ( get_post_meta( $post_id, '_qt_imported', true ) ) {
 			return;
@@ -946,7 +946,7 @@ class QT_Importer {
 				$langs[ $languages[ $key ] ]['excerpt'] = $e;
 			};
 
-			$custom_fields = $wpdb->get_results( $wpdb->prepare( "SELECT meta_key, meta_value FROM {$wpdb->postmeta} WHERE post_id=%d", $post_id ) );
+			$custom_fields = $this->wpdb->get_results( $this->wpdb->prepare( "SELECT meta_key, meta_value FROM {$this->wpdb->postmeta} WHERE post_id=%d", $post_id ) );
 			foreach ( $custom_fields as $cf ) {
 				// only handle scalar values
 				if ( ! is_serialized( $cf->meta_value ) ) {
@@ -1128,7 +1128,7 @@ class QT_Importer {
 			}
 
 			// handle comments
-			$comments = $wpdb->get_col( $wpdb->prepare( "SELECT comment_ID FROM {$wpdb->comments} WHERE comment_post_ID = %d", $post['ID'] ) );
+			$comments = $this->wpdb->get_col( $this->wpdb->prepare( "SELECT comment_ID FROM {$this->wpdb->comments} WHERE comment_post_ID = %d", $post['ID'] ) );
 			if ( $comments ) {
 				foreach ( $comments as $comment_id ) {
 					$sitepress->set_element_language_details( $comment_id, 'comment', null, $this->_lang_map( $this->qt_default_language ) );
