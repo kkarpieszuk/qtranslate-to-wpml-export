@@ -24,9 +24,7 @@ class Single_Post {
 	public function process_post( $post_id ) {
 		global $sitepress, $sitepress_settings;
 
-		if ( get_post_meta( $post_id, '_qt_imported', true ) ) {
-			return;
-		}
+		if ( get_post_meta( $post_id, '_qt_imported', true ) ) return; // already imported
 
 		$post = get_post( $post_id, ARRAY_A );
 
@@ -269,7 +267,6 @@ class Single_Post {
 			// remove last [:] but remember it exists only if string is translated
 			$post_element = substr( $post_element, 0, strlen( $post_element ) - 3 );
 		}
-
 		return $post_element;
 	}
 }
