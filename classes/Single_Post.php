@@ -34,13 +34,7 @@ class Single_Post {
 
 		if ( $post ) {
 
-			$post['post_title'] = preg_replace( '#<!--:--><!--:([a-z]{2})-->#', '[:$1]', $post['post_title'] ); // replace middle legacy syntax <!--:--><!--:en--> into [:en]
-			$post['post_title'] = str_replace( '<!--:-->', '[:]', $post['post_title'] ); // replace end legacy syntax <!--:--> into [:]
-			$post['post_title'] = preg_replace( '#<!--:([a-z]{2})-->#', '[:$1]', $post['post_title'] ); // replace start legacy syntax <!--:en--> into [:en]
-			if ( 3 == strlen( $post['post_title'] ) - strrpos( $post['post_title'], "[:]" ) ) {
-				// remove last [:] but remember it exists only if string is translated
-				$post['post_title'] = substr( $post['post_title'], 0, strlen( $post['post_title'] ) - 3 );
-			}
+			$post['post_title'] = $this->replace_legacies_in_post_element( $post['post_title'] );
 			$exp = preg_split( '#\[:([a-z]{2})\]#', $post['post_title'] );
 			array_shift( $exp );
 			preg_match_all( '#\[:([a-z]{2})\]#', $post['post_title'], $matches );
@@ -53,13 +47,7 @@ class Single_Post {
 				$langs[ $languages[ $key ] ]['title'] = $e;
 			};
 
-			$post['post_content'] = preg_replace( '#<!--:--><!--:([a-z]{2})-->#', '[:$1]', $post['post_content'] );
-			$post['post_content'] = str_replace( '<!--:-->', '[:]', $post['post_content'] );
-			$post['post_content'] = preg_replace( '#<!--:([a-z]{2})-->#', '[:$1]', $post['post_content'] );
-			if ( 3 == strlen( $post['post_content'] ) - strrpos( $post['post_content'], "[:]" ) ) {
-				// remove last [:] but remember it exists only if string is translated
-				$post['post_content'] = substr( $post['post_content'], 0, strlen( $post['post_content'] ) - 3 );
-			}
+			$post['post_content'] = $this->replace_legacies_in_post_element( $post['post_content'] );
 			$exp = preg_split( '#\[:([a-z]{2})\]#', $post['post_content'] );
 			array_shift( $exp );
 			preg_match_all( '#\[:([a-z]{2})\]#', $post['post_content'], $matches );
@@ -75,13 +63,7 @@ class Single_Post {
 				}
 			};
 
-			$post['post_excerpt'] = preg_replace( '#<!--:--><!--:([a-z]{2})-->#', '[:$1]', $post['post_excerpt'] );
-			$post['post_excerpt'] = str_replace( '<!--:-->', '[:]', $post['post_excerpt'] );
-			$post['post_excerpt'] = preg_replace( '#<!--:([a-z]{2})-->#', '[:$1]', $post['post_excerpt'] );
-			if ( 3 == strlen( $post['post_excerpt'] ) - strrpos( $post['post_excerpt'], "[:]" ) ) {
-				// remove last [:] but remember it exists only if string is translated
-				$post['post_excerpt'] = substr( $post['post_excerpt'], 0, strlen( $post['post_excerpt'] ) - 3 );
-			}
+			$post['post_excerpt'] = $this->replace_legacies_in_post_element( $post['post_excerpt'] );
 			$exp = preg_split( '#\[:([a-z]{2})\]#', $post['post_excerpt'] );
 			array_shift( $exp );
 			preg_match_all( '#\[:([a-z]{2})\]#', $post['post_excerpt'], $matches );
@@ -99,13 +81,7 @@ class Single_Post {
 				// only handle scalar values
 				if ( ! is_serialized( $cf->meta_value ) ) {
 
-					$cf->meta_value = preg_replace( '#<!--:--><!--:([a-z]{2})-->#', '[:$1]', $cf->meta_value );
-					$cf->meta_value = str_replace( '<!--:-->', '[:]', $cf->meta_value );
-					$cf->meta_value = preg_replace( '#<!--:([a-z]{2})-->#', '[:$1]', $cf->meta_value );
-					if ( 3 == strlen( $cf->meta_value ) - strrpos( $cf->meta_value, "[:]" ) ) {
-						// remove last [:] but remember it exists only if string is translated
-						$cf->meta_value = substr( $cf->meta_value, 0, strlen( $cf->meta_value ) - 3 );
-					}
+					$cf->meta_value = $this->replace_legacies_in_post_element( $cf->meta_value );
 					$exp = preg_split( '#\[:([a-z]{2})\]#', $cf->meta_value );
 					array_shift( $exp );
 					preg_match_all( '#\[:([a-z]{2})\]#', $cf->meta_value, $matches );
@@ -283,5 +259,17 @@ class Single_Post {
 				}
 			}
 		}
+	}
+
+	private function replace_legacies_in_post_element( $post_element ) {
+		$post_element = preg_replace( '#<!--:--><!--:([a-z]{2})-->#', '[:$1]', $post_element ); // replace middle legacy syntax <!--:--><!--:en--> into [:en]
+		$post_element = str_replace( '<!--:-->', '[:]', $post_element ); // replace end legacy syntax <!--:--> into [:]
+		$post_element = preg_replace( '#<!--:([a-z]{2})-->#', '[:$1]', $post_element ); // replace start legacy syntax <!--:en--> into [:en]
+		if ( 3 == strlen( $post_element ) - strrpos( $post_element, "[:]" ) ) {
+			// remove last [:] but remember it exists only if string is translated
+			$post_element = substr( $post_element, 0, strlen( $post_element ) - 3 );
+		}
+
+		return $post_element;
 	}
 }
