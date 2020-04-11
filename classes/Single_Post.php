@@ -43,44 +43,12 @@ class Single_Post {
 			$post['post_excerpt'] = $this->replace_legacies_in_post_element( $post['post_excerpt'] );
 			$posts_to_create = $this->add_post_to_posts_to_create( $posts_to_create, $post, 'post_excerpt' );
 
-			$custom_fields = $this->get_custom_fields( $post_id );
-			foreach ( $custom_fields as $cf ) {
-				// only handle scalar values
-				if ( ! is_serialized( $cf['meta_value'] ) ) {
-					$posts_to_create = $this->add_custom_field_to_posts_to_create( $posts_to_create, $cf );
-				} else {
-					// copying all the other custom fields
-					$posts_to_create = $this->add_serialized_custom_field_to_posts_to_create( $posts_to_create, $cf );
-				}
-			}
+			$posts_to_create = $this->add_all_cf_to_posts_to_create( $posts_to_create, $post_id );
 
-			// put the default language in front
-			$active_languages = array_merge( array( $this->qt_default_language ), array_diff( $this->qt_active_languages, array( $this->qt_default_language ) ) );
+			$posts_to_create = $this->handle_empty_titles( $posts_to_create, $post );
+			$posts_to_create = $this->mark_post_in_default_language( $posts_to_create );
 
-
-			// handle empty titles
-			foreach ( $active_languages as $language ) {
-				if ( empty( $posts_to_create[ $language ]['post_title'] ) && ! empty( $posts_to_create[ $language ]['post_content'] ) ) {
-					$posts_to_create[ $language ]['post_title'] = $post['post_title'];
-				}
-			}
-
-			// mark post in default language
-			if ( isset( $posts_to_create[ $this->qt_default_language ] ) ) {
-				$posts_to_create[ $this->qt_default_language ]['__icl_source'] = true;
-			} else {
-				// if the post in the default language does not exist pick a different post as a 'source'
-				foreach ( $active_languages as $language ) {
-					if ( $language != $this->qt_default_language && ! empty( $posts_to_create[ $language ]['post_title'] ) ) {
-						$posts_to_create[ $language ]['__icl_source'] = true;
-						break;
-					}
-				}
-			}
-
-			foreach ( $active_languages as $language ) {
-
-				//echo $language . "------------------------";
+			foreach ( $this->get_all_languages() as $language ) {
 
 				if ( empty( $posts_to_create[ $language ]['post_title'] ) ) {
 					continue;
@@ -272,4 +240,51 @@ class Single_Post {
 	private function get_custom_fields( $post_id ) {
 		return $this->wpdb->get_results( $this->wpdb->prepare( "SELECT meta_key, meta_value FROM {$this->wpdb->postmeta} WHERE post_id=%d", $post_id ), ARRAY_A );
 	}
+
+	private function get_all_languages() {
+		return array_merge( [ $this->qt_default_language ],
+							  array_diff( $this->qt_active_languages, [ $this->qt_default_language ] )
+		);
+	}
+
+	private function handle_empty_titles( $posts_to_create, $post ) {
+		// handle empty titles
+		foreach ( $this->get_all_languages() as $language ) {
+			if ( empty( $posts_to_create[ $language ]['post_title'] ) && ! empty( $posts_to_create[ $language ]['post_content'] ) ) {
+				$posts_to_create[ $language ]['post_title'] = $post['post_title'];
+			}
+		}
+		return $posts_to_create;
+	}
+
+	private function mark_post_in_default_language( $posts_to_create ) {
+		// mark post in default language
+		if ( isset( $posts_to_create[ $this->qt_default_language ] ) ) {
+			$posts_to_create[ $this->qt_default_language ]['__icl_source'] = true;
+		} else {
+			// if the post in the default language does not exist pick a different post as a 'source'
+			foreach ( $this->get_all_languages() as $language ) {
+				if ( $language != $this->qt_default_language && ! empty( $posts_to_create[ $language ]['post_title'] ) ) {
+					$posts_to_create[ $language ]['__icl_source'] = true;
+					break;
+				}
+			}
+		}
+		return $posts_to_create;
+	}
+
+	private function add_all_cf_to_posts_to_create( $posts_to_create, $post_id ) {
+		$custom_fields = $this->get_custom_fields( $post_id );
+		foreach ( $custom_fields as $cf ) {
+			// only handle scalar values
+			if ( ! is_serialized( $cf['meta_value'] ) ) {
+				$posts_to_create = $this->add_custom_field_to_posts_to_create( $posts_to_create, $cf );
+			} else {
+				// copying all the other custom fields
+				$posts_to_create = $this->add_serialized_custom_field_to_posts_to_create( $posts_to_create, $cf );
+			}
+		}
+		return $posts_to_create;
+	}
+
 }
