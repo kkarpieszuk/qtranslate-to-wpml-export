@@ -102,7 +102,7 @@ class Single_Post {
 					), 11, 2 );
 				}
 
-				if ( $language == $this->qt_default_language || ! empty( $posts_to_create[ $language ]['__icl_source'] ) ) {
+				if ( ! empty( $posts_to_create[ $language ]['__icl_source'] ) ) {
 
 					$trid = $sitepress->get_element_trid( $post['ID'], 'post' . $post['post_type'] );
 					if ( is_null( $trid ) ) {
