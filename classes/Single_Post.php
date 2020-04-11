@@ -65,8 +65,11 @@ class Single_Post {
 				}
 			}
 
-			// if the post in the default language does not exist pick a different post as a 'source'
-			if ( empty( $posts_to_create[ $this->qt_default_language ] ) ) {
+			// mark post in default language
+			if ( isset( $posts_to_create[ $this->qt_default_language ] ) ) {
+				$posts_to_create[ $this->qt_default_language ]['__icl_source'] = true;
+			} else {
+				// if the post in the default language does not exist pick a different post as a 'source'
 				foreach ( $active_languages as $language ) {
 					if ( $language != $this->qt_default_language && ! empty( $posts_to_create[ $language ]['post_title'] ) ) {
 						$posts_to_create[ $language ]['__icl_source'] = true;
