@@ -35,45 +35,24 @@ class Single_Post {
 			$posts_to_create = [];
 
 			$post['post_title'] = $this->replace_legacies_in_post_element( $post['post_title'] );
-			$posts_to_create = $this->add_elements_to_posts_to_create( $posts_to_create, $post, 'post_title' );
+			$posts_to_create = $this->add_post_to_posts_to_create( $posts_to_create, $post, 'post_title' );
 
 			$post['post_content'] = $this->replace_legacies_in_post_element( $post['post_content'] );
-			$posts_to_create = $this->add_elements_to_posts_to_create( $posts_to_create, $post, 'post_content' );
+			$posts_to_create = $this->add_post_to_posts_to_create( $posts_to_create, $post, 'post_content' );
 
 			$post['post_excerpt'] = $this->replace_legacies_in_post_element( $post['post_excerpt'] );
-			$posts_to_create = $this->add_elements_to_posts_to_create( $posts_to_create, $post, 'post_excerpt' );
+			$posts_to_create = $this->add_post_to_posts_to_create( $posts_to_create, $post, 'post_excerpt' );
 
-			$custom_fields = $this->wpdb->get_results( $this->wpdb->prepare( "SELECT meta_key, meta_value FROM {$this->wpdb->postmeta} WHERE post_id=%d", $post_id ) );
+			$custom_fields = $this->get_custom_fields( $post_id );
 			foreach ( $custom_fields as $cf ) {
 				// only handle scalar values
-				if ( ! is_serialized( $cf->meta_value ) ) {
-
-					$cf->meta_value = $this->replace_legacies_in_post_element( $cf->meta_value );
-					$elements_by_language = preg_split( '#\[:([a-z]{2})\]#', $cf->meta_value );
-					array_shift( $elements_by_language );
-					preg_match_all( '#\[:([a-z]{2})\]#', $cf->meta_value, $matches );
-					$languages = $matches['1'];
-					foreach ( $languages as $key => $language_code ) {
-						$language_code                 = strtolower( $language_code );
-						$languages[ $key ] = $language_code;
-					}
-					foreach ( $elements_by_language as $key => $element ) {
-						if ( isset( $matches[2] ) ) {
-							$posts_to_create[ $lang ]['custom_fields'][ $cf->meta_key ] = $matches[2]; // @todo $lang does not exist so check what is going on here
-						}
-					}
+				if ( ! is_serialized( $cf['meta_value'] ) ) {
+					$posts_to_create = $this->add_custom_field_to_posts_to_create( $posts_to_create, $cf );
 				} else {
 					// copying all the other custom fields
-					foreach ( $this->qt_active_languages as $lang ) {
-						if ( $this->qt_default_language != $lang ) {
-							$posts_to_create[ $lang ]['custom_fields'][ $cf->meta_key ] = $cf->meta_value;
-						}
-					}
+					$posts_to_create = $this->add_serialized_custom_field_to_posts_to_create( $posts_to_create, $cf );
 				}
-
 			}
-
-			//echo $post_id . "------------------------";
 
 			// put the default language in front
 			$active_languages = array_merge( array( $this->qt_default_language ), array_diff( $this->qt_active_languages, array( $this->qt_default_language ) ) );
@@ -239,7 +218,7 @@ class Single_Post {
 		return $post_element;
 	}
 
-	private function add_elements_to_posts_to_create( $posts_to_create, $post, $element_type ) {
+	private function add_post_to_posts_to_create( $posts_to_create, $post, $element_type ) {
 		$elements_by_language = preg_split( '#\[:([a-z]{2})\]#', $post[ $element_type ] );
 		array_shift( $elements_by_language );
 		preg_match_all( '#\[:([a-z]{2})\]#', $post['post_title'], $matches );
@@ -256,5 +235,38 @@ class Single_Post {
 		};
 
 		return $posts_to_create;
+	}
+
+	private function add_custom_field_to_posts_to_create( $posts_to_create, $cf ) {
+		$cf['meta_value'] = $this->replace_legacies_in_post_element( $cf['meta_value'] );
+		$elements_by_language = preg_split( '#\[:([a-z]{2})\]#', $cf['meta_value'] );
+		array_shift( $elements_by_language );
+		preg_match_all( '#\[:([a-z]{2})\]#', $cf['meta_value'], $matches );
+		$languages = $matches['1'];
+		foreach ( $languages as $key => $language_code ) {
+			$language_code                 = strtolower( $language_code );
+			$languages[ $key ] = $language_code;
+		}
+		foreach ( $elements_by_language as $key => $element ) {
+			if ( isset( $matches[2] ) ) {
+				// @todo $lang does not exist so check what is going on here
+				$posts_to_create[ $lang ]['custom_fields'][ $cf['meta_key'] ] = $matches[2];
+			}
+		}
+
+		return $posts_to_create;
+	}
+
+	private function add_serialized_custom_field_to_posts_to_create( $posts_to_create, $cf ) {
+		foreach ( $this->qt_active_languages as $lang ) {
+			if ( $this->qt_default_language != $lang ) {
+				$posts_to_create[ $lang ]['custom_fields'][ $cf['meta_key'] ] = $cf['meta_value'];
+			}
+		}
+		return $posts_to_create;
+	}
+
+	private function get_custom_fields( $post_id ) {
+		return $this->wpdb->get_results( $this->wpdb->prepare( "SELECT meta_key, meta_value FROM {$this->wpdb->postmeta} WHERE post_id=%d", $post_id ), ARRAY_A );
 	}
 }
