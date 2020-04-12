@@ -11,6 +11,7 @@ class Single_Post {
 	private $qt_active_languages;
 	private $qt_url_mode;
 	private $utils;
+	static $all_languages;
 
 	public function __construct( $qt_default_language, $qt_active_languages, $qt_url_mode ) {
 		global $wpdb;
@@ -54,23 +55,16 @@ class Single_Post {
 					continue;
 				} // obslt
 
-				$post['post_title']   = $posts_to_create[ $language ]['post_title'];
-				$post['post_content'] = isset( $posts_to_create[ $language ]['post_content'] ) ? $posts_to_create[ $language ]['post_content'] : '';
+				$_POST['post_title'] = $post['post_title']   = $posts_to_create[ $language ]['post_title'];
+				$post['post_content'] = $posts_to_create[ $language ]['post_content'] ?: '';
 				if ( isset( $posts_to_create[ $language ]['post_excerpt'] ) ) {
 					$post['post_excerpt'] = $posts_to_create[ $language ]['post_excerpt'];
 				}
 				$_POST['icl_post_language'] = $this->utils->_lang_map( $language );
-				$_POST['post_title']        = $post['post_title'];
 
-				global $iclTranslationManagement;
-				if ( ! empty( $iclTranslationManagement ) ) {
-					remove_action( 'save_post', array(
-						$iclTranslationManagement,
-						'save_post_actions'
-					), 11, 2 );
-				}
+				$this->remove_icl_post_actions();
 
-				if ( ! empty( $posts_to_create[ $language ]['__icl_source'] ) ) {
+				if ( ! empty( $posts_to_create[ $language ]['__icl_source'] ) ) { // is it post in original language
 
 					$trid = $sitepress->get_element_trid( $post['ID'], 'post' . $post['post_type'] );
 					if ( is_null( $trid ) ) {
@@ -241,10 +235,18 @@ class Single_Post {
 		return $this->wpdb->get_results( $this->wpdb->prepare( "SELECT meta_key, meta_value FROM {$this->wpdb->postmeta} WHERE post_id=%d", $post_id ), ARRAY_A );
 	}
 
+	/**
+	 * Return array with all qTranslate languages, default language always first.
+	 *
+	 * @return array All languages configured in qTranslate.
+	 */
 	private function get_all_languages() {
-		return array_merge( [ $this->qt_default_language ],
-							  array_diff( $this->qt_active_languages, [ $this->qt_default_language ] )
-		);
+		if ( empty( self::$all_languages ) ) {
+			self::$all_languages = array_merge( [ $this->qt_default_language ],
+				array_diff( $this->qt_active_languages, [ $this->qt_default_language ] )
+			);
+		}
+		return self::$all_languages;
 	}
 
 	private function handle_empty_titles( $posts_to_create, $post ) {
@@ -285,6 +287,16 @@ class Single_Post {
 			}
 		}
 		return $posts_to_create;
+	}
+
+	private function remove_icl_post_actions() {
+		global $iclTranslationManagement;
+		if ( ! empty( $iclTranslationManagement ) ) {
+			remove_action( 'save_post', array(
+				$iclTranslationManagement,
+				'save_post_actions'
+			), 11, 2 );
+		}
 	}
 
 }
