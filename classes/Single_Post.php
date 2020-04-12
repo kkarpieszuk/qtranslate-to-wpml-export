@@ -186,7 +186,7 @@ class Single_Post {
 	private function add_post_to_posts_to_create( $posts_to_create, $post, $element_type ) {
 		$elements_by_language = preg_split( '#\[:([a-z]{2})\]#', $post[ $element_type ] );
 		array_shift( $elements_by_language );
-		preg_match_all( '#\[:([a-z]{2})\]#', $post['post_title'], $matches );
+		preg_match_all( '#\[:([a-z]{2})\]#', $post[ $element_type ], $matches );
 		$languages = $matches['1'];
 		foreach ( $languages as $key => $language_code ) {
 			$language_code                 = strtolower( $language_code );
